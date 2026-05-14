@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap" rel="stylesheet">
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Love Flow & Pulsing Text</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+        }
+
+        /* Start Screen */
+        #start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 1s ease;
+        }
+
+        #love-btn {
+            background: transparent;
+            color: #ff69b4;
+            border: 2px solid #ff69b4;
+            padding: 15px 40px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            border-radius: 50px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 10px rgba(255, 105, 180, 0.3);
+            outline: none;
+        }
+
+        #love-btn:hover {
+            background-color: #ff69b4;
+            color: #000;
+            box-shadow: 0 0 30px #ff69b4;
+            transform: scale(1.1);
+        }
+
+        /* Main Display Area */
+        #main-content {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            perspective: 1200px;
+        }
+
+        .heart-wrapper {
+            position: absolute;
+            top: 45%; /* ဖုန်းမှာ ပိုအလယ်ကျအောင် 45% ထားထားတယ် */
+            left: 50%;
+            transform-style: preserve-3d;
+            transform: translate(-50%, -50%) rotateX(20deg) rotateY(-10deg);
+        }
+
+        .container {
+            position: relative;
+            transform-style: preserve-3d;
+            width: 0;
+            height: 0;
+        }
+
+        .love-word {
+            position: absolute;
+            color: #ff69b4;
+            font-size: 1.4rem; /* Laptop အတွက် size */
+            font-family: "Dancing Script", cursive;
+            white-space: nowrap;
+            text-shadow: 0 0 8px rgba(255, 105, 180, 0.8);
+            transform-origin: center;
+            backface-visibility: visible;
+            animation: textPulse 3s infinite ease-in-out;
+            will-change: transform, opacity;
+        }
+
+        /* ဖုန်း screen အတွက် စာသားအရွယ်အစားကို လျှော့ချပေးခြင်း */
+        @media (max-width: 600px) {
+            .love-word {
+                font-size: 0.9rem; /* ဖုန်းမှာ စာသားသေးပေးမှ screen ဆန့်မှာပါ */
+            }
+            #love-btn {
+                padding: 12px 30px;
+                font-size: 1.1rem;
+            }
+        }
+
+        @keyframes textPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.7; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; text-shadow: 0 0 15px #ff69b4; }
+        }
+
+        #music-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 105, 180, 0.2);
+            color: #fff;
+            border: 1px solid #ff69b4;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="bgMusic" loop>
+        <source src="https://github.com/villiann10-source/Love-Project/raw/refs/heads/main/angel_song.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="start-screen">
+        <button id="love-btn">Love me pls</button>
+    </div>
+
+    <div id="main-content">
+        <div class="heart-wrapper">
+            <div class="container" id="heart-container"></div>
+        </div>
+        <button id="music-toggle">Pause ⏸️</button>
+    </div>
+
+    <script>
+        const container = document.getElementById('heart-container');
+        const startBtn = document.getElementById('love-btn');
+        const music = document.getElementById('bgMusic');
+        
+        const totalWords = 120;
+        const wordObjects = [];
+
+        // Screen size ပေါ်မူတည်ပြီး Scale ကို တွက်ပေးတဲ့ Function
+        function getScale() {
+            const width = window.innerWidth;
+            if (width < 600) return width / 35; // Phone
+            return 18; // Laptop/Desktop
+        }
+
+        let currentScale = getScale();
+
+        // Window size ပြောင်းရင် scale ကို ပြန်ညှိမယ်
+        window.addEventListener('resize', () => {
+            currentScale = getScale();
+        });
+
+        function initHeart() {
+            for (let i = 0; i < totalWords; i++) {
+                const el = document.createElement('div');
+                el.className = 'love-word';
+                el.innerText = 'I love you';
+                
+                const initialAngle = (i / totalWords) * (2 * Math.PI);
+                
+                wordObjects.push({
+                    el: el,
+                    angle: initialAngle,
+                    speed: 0.003
+                });
+                
+                container.appendChild(el);
+            }
+            animateFlow();
+        }
+
+        function animateFlow() {
+            wordObjects.forEach(obj => {
+                obj.angle += obj.speed;
+                const t = obj.angle;
+                
+                const x = 16 * Math.pow(Math.sin(t), 3);
+                const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+                const z = Math.sin(t * 2) * 30; 
+
+                // တွက်ထားတဲ့ currentScale ကို သုံးထားပါတယ်
+                obj.el.style.left = `${x * currentScale}px`;
+                obj.el.style.top = `${y * currentScale}px`;
+                obj.el.style.transform = `translate3d(0, 0, ${z}px)`;
+            });
+
+            requestAnimationFrame(animateFlow);
+        }
+
+        startBtn.addEventListener('click', () => {
+            document.getElementById('start-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+                initHeart();
+                music.play().catch(e => console.log("Music auto-play blocked"));
+            }, 800);
+        });
+
+        document.getElementById('music-toggle').addEventListener('click', function() {
+            if (music.paused) {
+                music.play();
+                this.innerText = "Pause ⏸️";
+            } else {
+                music.pause();
+                this.innerText = "Play 🎵";
+            }
+        });
+    </script>
+</body>
+</html>
